@@ -26,6 +26,7 @@ router.get(
   productController.getSellerProducts
 );
 
+
 // PATCH /api/products/:id
 router.patch(
   "/:id",
