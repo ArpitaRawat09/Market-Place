@@ -27,7 +27,7 @@ const registerUserValidationRules = [
     .withMessage("Last name is required")
     .notEmpty()
     .withMessage("Last name cannot be empty"),
-    body("role")
+  body("role")
     .optional()
     .isIn(["user", "seller"])
     .withMessage("Role must be either 'user' or 'seller'"),
@@ -36,16 +36,18 @@ const registerUserValidationRules = [
 
 const loginUserValidationRules = [
   body("email").optional().isEmail().withMessage("Invalid email address"),
-  body("username").optional().isString().withMessage("Invalid username"),
-  body("password")
+  body("username")
+    .optional()
     .isString()
+    .withMessage("Username must be a string"),
+  body("password")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters long"),
   (req, res, next) => {
     if (!req.body.email && !req.body.username) {
       return res
         .status(400)
-        .json({ message: "Email or username is required for login" });
+        .json({ errors: [{ msg: "Either email or username is required" }] });
     }
     respondWithValidationErrors(req, res, next);
   },

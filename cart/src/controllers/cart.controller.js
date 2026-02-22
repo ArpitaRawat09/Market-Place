@@ -4,6 +4,7 @@ async function getCart(req, res) {
   const user = req.user;
 
   let cart = await cartModel.findOne({ user: user._id });
+  
 
   if (!cart) {
     cart = new cartModel({ user: user._id, items: [] });
