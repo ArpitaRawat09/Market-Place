@@ -3,23 +3,20 @@ const cartModel = require("../models/cart.model");
 async function getCart(req, res) {
   const user = req.user;
 
-  let cart = await cartModel.findOne({ user: user._id });
-  
+  let cart = await cartModel.findOne({ user: user.id });
 
   if (!cart) {
-    cart = new cartModel({ user: user._id, items: [] });
+    cart = new cartModel({ user: user.id, items: [] });
     await cart.save();
   }
 
-  const itemCount = cart.items.length;
-  const totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-
   res.status(200).json({
-    cart: {
-      items: cart.items,
-      totals: { itemCount, totalQuantity },
+    cart,
+    totals: {
+      itemCount: cart.items.length,
+      totalQuantity: cart.items.reduce((sum, item) => sum + item.quantity, 0),
     },
-  });   
+  });
 }
 
 async function addItemToCart(req, res) {
@@ -34,11 +31,11 @@ async function addItemToCart(req, res) {
   }
 
   try {
-    let cart = await cartModel.findOne({ user: user._id });
+    let cart = await cartModel.findOne({ user: user.id });
 
     if (!cart) {
       cart = new cartModel({
-        user: user._id,
+        user: user.id,
         items: [{ productId, quantity: qty }],
       });
     } else {
@@ -72,7 +69,7 @@ async function updateCartItem(req, res) {
   }
 
   try {
-    const cart = await cartModel.findOne({ user: req.user._id });
+    const cart = await cartModel.findOne({ user: req.user.id });
     if (!cart) {
       return res.status(404).json({ message: "Cart not found" });
     }

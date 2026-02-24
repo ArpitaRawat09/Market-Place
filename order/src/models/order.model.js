@@ -6,12 +6,7 @@ const addressSchema = new mongoose.Schema({
   state: String,
   zipCode: String,
   pincode: String,
-  phone: String,
   country: String,
-  isDefault: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 const orderSchema = new mongoose.Schema(
@@ -46,7 +41,7 @@ const orderSchema = new mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ["pending", "completed", "cancelled"],
+      enum: ["PENDING", "COMPLETED", "CANCELLED"],
     },
     totalPrice: {
       amount: {
@@ -59,7 +54,10 @@ const orderSchema = new mongoose.Schema(
         enum: ["USD", "INR"],
       },
     },
-    shippingAddress: addressSchema,
+    shippingAddress: {
+      type: addressSchema,
+      required: true,
+    },
   },
   { timestamps: true },
 );

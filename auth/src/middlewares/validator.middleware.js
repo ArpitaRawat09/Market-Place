@@ -74,7 +74,7 @@ const addUserValidation = [
     .withMessage("Country is required")
     .notEmpty()
     .withMessage("Country cannot be empty"),
-  body("pincode").isPostalCode("IN").withMessage("Invalid pincode for India"),
+  body("pincode").isPostalCode("INR").withMessage("Invalid pincode for India"),
   body("phone")
     .isString()
     .matches(/^[0-9]{10}$/)

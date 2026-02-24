@@ -1,39 +1,47 @@
-const { body, param, validationResult } = require("express-validator");
-const mongoose = require("mongoose");
+const { body, validationResult } = require("express-validator");
 
-const validResult = (req, res, next) => {
+const respondWithValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log(errors);
+    
     return res.status(400).json({ errors: errors.array() });
   }
   next();
 };
 
-const validateAddItemToCart = [
-  body("productId")
-    .isMongoId()
-    .withMessage("Invalid product ID")
-    .custom((value) => mongoose.Types.ObjectId.isValid(value))
-    .withMessage("Invalid product ID format"),
-  body("quantity")
-    .isInt({ gt: 0 })
-    .withMessage("Quantity must be a positive integer"),
-  validResult,
-];
-
-const validateUpdateCartItem = [
-  param("productId")
-    .isMongoId()
-    .withMessage("Invalid product ID")
-    .custom((value) => mongoose.Types.ObjectId.isValid(value))
-    .withMessage("Invalid product ID format"),
-  body("quantity")
-    .isInt({ gt: 0 })
-    .withMessage("Quantity must be a positive integer"),
-  validResult,
+const createOrderValidation = [
+  body("shippingAddress.street")
+    .isString()
+    .withMessage("Street is required")
+    .notEmpty()
+    .withMessage("Street cannot be empty"),
+  body("shippingAddress.city")
+    .isString()
+    .withMessage("City is required")
+    .notEmpty()
+    .withMessage("City cannot be empty"),
+  body("shippingAddress.state")
+    .isString()
+    .withMessage("State is required")
+    .notEmpty()
+    .withMessage("State cannot be empty"),
+  body("shippingAddress.country")
+    .isString()
+    .withMessage("Country is required")
+    .notEmpty()
+    .withMessage("Country cannot be empty"),
+  body('shippingAddress.pincode')
+        .isString()
+        .withMessage('Pincode must be a string')
+        .notEmpty()
+        .withMessage('Pincode is required')
+        .bail()
+        .matches(/^\d{4,}$/)
+        .withMessage('Pincode must be at least 4 digits'),
+  respondWithValidationErrors,
 ];
 
 module.exports = {
-  validateAddItemToCart,
-  validateUpdateCartItem,
+  createOrderValidation,
 };
