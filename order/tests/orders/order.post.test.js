@@ -21,6 +21,7 @@ describe("POST /api/orders — Create order from current cart", () => {
       quantity: 2,
     },
   ];
+  
 
   const productCatalog = {
     "64b6013377c2d215b34c7d8a": {

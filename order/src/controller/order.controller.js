@@ -12,8 +12,6 @@ async function createOrder(req, res) {
       },
     });
 
-    console.log("Cart response data:", cartResponse.data.cart);
-
     const products = await Promise.all(
       cartResponse.data.cart.items.map(async (item) => {
         const response = await axios.get(
@@ -28,19 +26,18 @@ async function createOrder(req, res) {
       }),
     );
 
-    // console.log("Product Fetched", JSON.stringify(products, null, 2));
-    // return res.status(200).json({ products });
-
     let priceAmount = 0;
-    const orderItems = cartResponse.data.cart.items.map((item, index) => {
+    const orderItems = cartResponse.data.cart.items.map((item) => {
       const product = products.find((p) => p._id === item.productId);
 
-      // if not in stock, does not allow order creation
-      if (product.stock < item.quantity) {
-        throw new Error(
-          `Product ${product.title} is out of stock or insufficient quantity.`,
-        );
+      if (!product) {
+        throw new Error(`Product ${item.productId} not found`);
       }
+
+      if (product.stock < item.quantity) {
+        throw new Error(`Product ${product.title} is out of stock`);
+      }
+
       const itemTotal = product.price.amount * item.quantity;
       priceAmount += itemTotal;
 
@@ -54,9 +51,6 @@ async function createOrder(req, res) {
       };
     });
 
-    // console.log("total price", priceAmount);
-    // console.log(orderItems);
-
     const order = await orderModel.create({
       user: user.id,
       items: orderItems,
@@ -69,15 +63,137 @@ async function createOrder(req, res) {
     });
 
     res.status(201).json({ order });
-    
   } catch (err) {
-    console.log("Error Fetching Cart", err);
+    // console.log("Error Fetching Cart", err);
     return res
       .status(500)
       .json({ message: "Internal server error", error: err.message });
   }
 }
 
+async function getMyOrders(req, res) {
+  const user = req.user;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 20;
+  const skip = (page - 1) * limit;
+
+  try {
+    const orders = await orderModel
+      .find({ user: user.id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalOrders = await orderModel.countDocuments({ user: user.id });
+
+    res.status(200).json({
+      orders,
+      meta: {
+        page,
+        limit,
+        total: totalOrders,
+      },
+    });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: err.message });
+  }
+}
+
+async function getOrderById(req, res) {
+    const user = req.user;
+    const orderId = req.params.id;
+
+    try {
+        const order = await orderModel.findById(orderId)
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        if (order.user.toString() !== user.id) {
+            return res.status(403).json({ message: "Forbidden: You do not have access to this order" });
+        }
+
+        res.status(200).json({ order })
+    } catch (err) {
+        res.status(500).json({ message: "Internal server error", error: err.message })
+    }
+}
+
+async function cancelOrder(req, res) {
+    const user = req.user;
+    const orderId = req.params.id;
+
+    try {
+        const order = await orderModel.findById(orderId)
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        if (order.user.toString() !== user.id) {
+            return res.status(403).json({ message: "Forbidden: You do not have access to this order" });
+        }
+
+        // only PENDING orders can be cancelled
+        if (order.status !== "PENDING") {
+            return res.status(409).json({ message: "Order cannot be cancelled at this stage" });
+        }
+
+        order.status = "CANCELLED";
+        await order.save();
+
+        res.status(200).json({ order });
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({ message: "Internal server error", error: err.message });
+    }
+}
+
+async function updateShippingAddress(req, res) {
+    const user = req.user;
+    const orderId = req.params.id;
+
+    try {
+        const order = await orderModel.findById(orderId)
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        if (order.user.toString() !== user.id) {
+            return res.status(403).json({ message: "Forbidden: You do not have access to this order" });
+        }
+
+        // only PENDING orders can have address updated
+        if (order.status !== "PENDING") {
+            return res.status(409).json({ message: "Order address cannot be updated at this stage" });
+        }
+
+        const shippingAddress = req.body.shippingAddress;
+
+        order.shippingAddress = {
+          ...order.shippingAddress,
+          ...shippingAddress,
+          zipCode: shippingAddress.pincode ?? shippingAddress.zipCode ?? order.shippingAddress?.zipCode,
+        };
+
+        await order.save();
+
+        res.status(200).json({ order });
+    } catch (err) {
+        res.status(500).json({ message: "Internal server error", error: err.message });
+    }
+}
+
 module.exports = {
   createOrder,
+  getMyOrders,
+  getOrderById,
+  cancelOrder,
+  updateShippingAddress,
 };
