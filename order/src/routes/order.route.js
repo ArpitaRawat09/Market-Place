@@ -15,7 +15,7 @@ router.get("/me", createAuthMiddleware(["user"]), orderController.getMyOrders);
 
 router.get( 
   "/:id",     
-  createAuthMiddleware(["user"]),
+  createAuthMiddleware(["user","admin"]),
   orderController.getOrderById,
 );
 

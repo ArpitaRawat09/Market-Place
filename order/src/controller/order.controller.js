@@ -64,7 +64,7 @@ async function createOrder(req, res) {
 
     res.status(201).json({ order });
   } catch (err) {
-    // console.log("Error Fetching Cart", err);
+    console.log("Error Fetching Cart", err);
     return res
       .status(500)
       .json({ message: "Internal server error", error: err.message });
