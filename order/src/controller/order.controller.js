@@ -109,6 +109,7 @@ async function getOrderById(req, res) {
         const order = await orderModel.findById(orderId)
 
         if (!order) {
+          console.log("Order not found for ID:", orderId);
             return res.status(404).json({ message: "Order not found" });
         }
 

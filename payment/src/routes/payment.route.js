@@ -10,4 +10,11 @@ router.post(
   paymentController.createPayment,
 );
 
+
+router.post(
+  "/verify",
+  createAuthMiddleware(["user"]),
+  paymentController.verifyPayment,
+);
+
 module.exports = router;
