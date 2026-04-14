@@ -1,6 +1,6 @@
 const { StateGraph, MessagesAnnotation } = require("@langchain/langgraph")
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai")
-const { ToolMessage, AIMessage, HumanMessage } = require("@langchain/core/messages")
+const { ToolMessage, AIMessage, SystemMessage } = require("@langchain/core/messages")
 const tools = require("./tools")    
 
 
@@ -8,6 +8,10 @@ const model = new ChatGoogleGenerativeAI({
     model: "models/gemini-2.5-flash",
     temperature: 0.5,
 })
+
+const AGENT_SYSTEM_PROMPT = new SystemMessage({
+    content: "You are an e-commerce assistant. If the user asks to add a product to cart and product id is missing, call searchProduct first, pick the best matching product from the tool response, and then call addProductToCart. If no products are found, ask a short clarification question."
+});
 
 
 const graph = new StateGraph(MessagesAnnotation)
@@ -38,7 +42,7 @@ const graph = new StateGraph(MessagesAnnotation)
         return state
     })
     .addNode("chat", async (state, config) => {
-        const response = await model.invoke(state.messages, { tools: [ tools.searchProduct, tools.addProductToCart ] })
+        const response = await model.invoke([AGENT_SYSTEM_PROMPT, ...state.messages], { tools: [ tools.searchProduct, tools.addProductToCart ] })
 
 
         state.messages.push(new AIMessage({ content: response.text, tool_calls: response.tool_calls }))
