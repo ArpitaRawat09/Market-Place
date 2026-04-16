@@ -8,6 +8,7 @@ async function initSocketServer(httpServer) {
 
   io.use((socket, next) => {
     const cookies = socket.handshake.headers?.cookie;
+    
 
     const { token } = cookies ? cookie.parse(cookies) : {};
 
