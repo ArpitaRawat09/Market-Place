@@ -1,5 +1,6 @@
 const paymentModel = require("../models/payment .model");
 const axios = require("axios");
+const { publishToQueue } = require("../broker/broker");
 
 // razorpay integration
 require("dotenv").config();
@@ -41,7 +42,7 @@ async function createPayment(req, res) {
       },
     });
 
-    // await payment.save();
+    await payment.save();
 
     res.status(201).json({ message: "Payment created", payment });
   } catch (err) {
@@ -89,10 +90,25 @@ async function verifyPayment(req, res) {
 
     await payment.save();
 
+    // Publish payment creation event to RabbitMQ
+    await publishToQueue("PAYMENT_NOTIFICATION.PAYMENT_COMPLETED", {
+      email: req.user.email,
+      orderId: orderId,
+      paymentId: payment._id,
+      amount: payment.price.amount / 100,
+      currency: payment.price.currency,
+    });
+
     res.status(200).json({ message: "Payment verified successfully", payment });
   } catch (err) {
     console.log(err);
-    res
+
+    await publishToQueue("PAYMENT_NOTIFICATION.PAYMENT_FAILED", {
+      email: req.user.email,
+      paymentId: paymentId,
+      orderId: razorpayOrderId,
+    });
+    return res
       .status(500)
       .json({ message: "Internal Server Error", error: err.message });
   }

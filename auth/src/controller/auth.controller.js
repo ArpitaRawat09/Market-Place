@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const redis = require("../db/redis");
 const { get } = require("mongoose");
+const { publishToQueue } = require("../broker/broker");
 
 async function registerUser(req, res) {
   try {
@@ -11,7 +12,7 @@ async function registerUser(req, res) {
       email,
       password,
       fullName: { firstName, lastName },
-      role
+      role,
     } = req.body;
 
     const isUserAlreadyRegistered = await userModel.findOne({
@@ -31,10 +32,18 @@ async function registerUser(req, res) {
       email,
       password: hash,
       fullName: { firstName, lastName },
-      role: role || "user"
+      role: role || "user",
     });
 
     await user.save();
+
+    // Publish user registration event to RabbitMQ after user is persisted
+    await publishToQueue("AUTH_NOTIFICATION.USER_QUEUE", {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+    });
 
     const token = jwt.sign(
       {
@@ -46,7 +55,7 @@ async function registerUser(req, res) {
       process.env.JWT_SECRET,
       {
         expiresIn: "1h",
-      }
+      },
     );
 
     res.cookie("token", token, {
@@ -247,7 +256,7 @@ async function deleteUserAddress(req, res) {
 
     const originalLength = user.address.length;
     user.address = user.address.filter(
-      (addr) => addr._id.toString() !== addressId
+      (addr) => addr._id.toString() !== addressId,
     );
 
     if (user.address.length === originalLength) {
