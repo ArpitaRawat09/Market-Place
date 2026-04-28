@@ -5,6 +5,7 @@ const redis = require("../db/redis");
 const { get } = require("mongoose");
 const { publishToQueue } = require("../broker/broker");
 
+
 async function registerUser(req, res) {
   try {
     const {
