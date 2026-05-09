@@ -5,7 +5,6 @@ const redis = require("../db/redis");
 const { get } = require("mongoose");
 const { publishToQueue } = require("../broker/broker");
 
-
 async function registerUser(req, res) {
   try {
     const {
@@ -39,12 +38,15 @@ async function registerUser(req, res) {
     await user.save();
 
     // Publish user registration event to RabbitMQ after user is persisted
-    await publishToQueue("AUTH_NOTIFICATION.USER_QUEUE", {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      fullName: user.fullName,
-    });
+    await Promise.all([
+      publishToQueue("AUTH_NOTIFICATION.USER_CREATED", {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+      }),
+      publishToQueue("AUTH_SELLER_DASHBOARD.USER_CREATED", user),
+    ]);
 
     const token = jwt.sign(
       {
